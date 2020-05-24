@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"log"
@@ -28,7 +27,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-    http.HandleFunc("/", sayhelloName) // set router
+    http.HandleFunc("/", handleRequest) // set router
     err := http.ListenAndServe(":9090", nil) // set listen port
     if err != nil {
         log.Fatal("ListenAndServe: ", err)
